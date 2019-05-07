@@ -45,7 +45,7 @@ object MixedStream extends App {
 
   def run(args: List[String]) = {
     val streamsIO: Task[List[Stream[Throwable, Message]]] =
-      ZIO.foreach(List("Akka", "FS2"))(queryToStream)
+      ZIO.foreach(List("ZIO", "FS2"))(queryToStream)
     val mergedIO: Task[Stream[Throwable, Message]] =
       streamsIO.map(streams => streams.reduceLeft(_.merge(_)))
     mergedIO.flatMap(_.foreach(message => putStrLn(message.toString))).fold(_ => 1, _ => 0)
