@@ -6,12 +6,16 @@ scalaVersion := "2.12.6"
 
 libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.0.0-M3",
-  "com.typesafe.play" %% "play-json" % "2.6.10",
-  "com.softwaremill.sttp" %% "core" % "1.3.2",
-  "com.softwaremill.sttp" %% "async-http-client-backend-monix" % "1.3.5",
-  "com.softwaremill.sttp" %% "async-http-client-backend-fs2" % "1.3.5",
-  "com.softwaremill.sttp" %% "async-http-client-backend-fs2" % "1.3.5"
+  "com.typesafe.play" %% "play-json" % "2.6.10"
 )
+
+val sttpVersion = "1.5.16"
+libraryDependencies ++= Seq(
+  "com.softwaremill.sttp" %% "core",
+  "com.softwaremill.sttp" %% "async-http-client-backend-monix",
+  "com.softwaremill.sttp" %% "async-http-client-backend-fs2",
+  "com.softwaremill.sttp" %% "async-http-client-backend-zio-streams"
+).map(_ % sttpVersion)
 
 val circeVersion = "0.10.0"
 libraryDependencies ++= Seq(
