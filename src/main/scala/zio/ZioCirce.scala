@@ -2,13 +2,12 @@ package zio
 
 import java.nio.ByteBuffer
 
-import sttp.client._
-import sttp.client.asynchttpclient.ziostreams.AsyncHttpClientZioStreamsBackend
 import io.circe.generic.auto._
 import io.circe.parser._
-import zio._
+import sttp.client._
+import sttp.client.asynchttpclient.ziostreams.AsyncHttpClientZioStreamsBackend
 import zio.console._
-import zio.stream._
+import zio.stream.{Stream, _}
 
 import scala.concurrent.duration.Duration
 
@@ -18,7 +17,7 @@ object MixedStream extends App {
 
   val sttpBackend = AsyncHttpClientZioStreamsBackend(this)
 
-  def queryToStream(keyword: String): Task[Stream[Throwable, Message]] = {
+  def queryToStream(keyword: String): Task[ZStream[Any, Throwable, Message]] = {
 
     sttpBackend.flatMap { implicit backend =>
       val responseIO =
@@ -31,17 +30,22 @@ object MixedStream extends App {
       responseIO.map { response =>
         response.body match {
           case Right(stream) =>
-            stream.flatMap { bytes =>
-              val s = new String(bytes.array(), "UTF-8")
-              Stream.fromIterable(s.split("\n"))
-                // JSON decode, Circe uses Either rather than throwing exceptions
-                .map(line => decode[Message](line).getOrElse(Message("Error parsing JSON", "app")))
+            delimitByLine(stream).map{ line =>
+              decode[Message](line).getOrElse(Message("Error parsing JSON", "app"))
             }
           case Left(_) => Stream(Message("http error", "app"))
         }
       }
     }
 
+  }
+
+  def delimitByLine(inStream: Stream[Throwable, ByteBuffer]): Stream[Throwable, String] = {
+    inStream
+      .map(bytes => new String(bytes.array(), "UTF-8"))
+      // or ZSink.splitDelimiter("\n")
+      .transduce(ZSink.splitLines)
+      .flatMap(chunk => Stream.fromChunk(chunk))
   }
 
   def run(args: List[String]) = {
