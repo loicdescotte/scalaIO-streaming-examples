@@ -7,6 +7,7 @@ import io.circe.parser._
 import sttp.client._
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.asynchttpclient.ziostreams.AsyncHttpClientZioStreamsBackend
+import sttp.client.testing.SttpBackendStub
 import zio.console._
 import zio.stream.{Stream, _}
 
@@ -16,14 +17,13 @@ case class Message(text: String, author: String)
 
 object MixedStream extends App {
 
-  type ZioSttpBackend = SttpBackend[Task, Stream[Throwable, ByteBuffer], WebSocketHandler]
+  type ZioSttpBackend = SttpBackend[Task, Stream[Throwable, ByteBuffer], Nothing]
 
   trait MixedStreamModule extends Console {
     def sttpBackend[R]: RIO[R, ZioSttpBackend]
   }
 
   // live module
-  // for test you can define a test module object with a stubbed sttp backend (see https://sttp.readthedocs.io/en/latest/testing.html)
   object MixedStreamModuleLive extends MixedStreamModule with Console.Live {
     def sttpBackend[R]: RIO[R, ZioSttpBackend] = ZIO.runtime.flatMap((r: Runtime[R]) => AsyncHttpClientZioStreamsBackend[R](r))
   }
@@ -66,5 +66,20 @@ object MixedStream extends App {
   }
 
   def run(args: List[String]) = program.provide(MixedStreamModuleLive).fold(_ => 1, _ => 0)
+
+
+  /* For test you can define a test module object with a stubbed sttp backend
+  Example :
+  object MixedStreamModuleTest extends MixedStreamModule with Console.Live {
+    def sttpBackend[R]: RIO[R, ZioSttpBackend] = {
+      ZIO.runtime
+        .flatMap((r: Runtime[R]) => AsyncHttpClientZioStreamsBackend[R](r))
+        .map { backend =>
+          SttpBackendStub(backend)
+          //(see https://sttp.readthedocs.io/en/latest/testing.html)
+          //.whenRequestMatches(...)
+        }
+    }
+  }*/
 
 }
