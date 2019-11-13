@@ -5,9 +5,7 @@ import java.nio.ByteBuffer
 import io.circe.generic.auto._
 import io.circe.parser._
 import sttp.client._
-import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.asynchttpclient.ziostreams.AsyncHttpClientZioStreamsBackend
-import sttp.client.testing.SttpBackendStub
 import zio.console._
 import zio.stream.{Stream, _}
 
@@ -25,7 +23,7 @@ object MixedStream extends App {
 
   // live module
   object MixedStreamModuleLive extends MixedStreamModule with Console.Live {
-    def sttpBackend[R]: RIO[R, ZioSttpBackend] = ZIO.runtime.flatMap((r: Runtime[R]) => AsyncHttpClientZioStreamsBackend[R](r))
+    override def sttpBackend[R]: RIO[R, ZioSttpBackend] = ZIO.runtime.flatMap((r: Runtime[R]) => AsyncHttpClientZioStreamsBackend[R](r))
   }
 
   def queryToStream(keyword: String): RIO[MixedStreamModule, Stream[Throwable, Message]] = {
@@ -67,11 +65,10 @@ object MixedStream extends App {
 
   def run(args: List[String]) = program.provide(MixedStreamModuleLive).fold(_ => 1, _ => 0)
 
-
   /* For test you can define a test module object with a stubbed sttp backend
   Example :
   object MixedStreamModuleTest extends MixedStreamModule with Console.Live {
-    def sttpBackend[R]: RIO[R, ZioSttpBackend] = {
+    override def sttpBackend[R]: RIO[R, ZioSttpBackend] = {
       ZIO.runtime
         .flatMap((r: Runtime[R]) => AsyncHttpClientZioStreamsBackend[R](r))
         .map { backend =>
